@@ -1,0 +1,1718 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>霍格華茲魔法番茄鐘 | Hogwarts Chronometer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@500;700;900&family=Noto+Serif+TC:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --gold-bright: #ffd700;
+            --gold-burnished: #c5a059;
+            --magic-glow: rgba(235, 185, 87, 0.65);
+            --parchment-bg: #14110f;
+        }
+
+        body {
+            font-family: 'Cinzel', 'Noto Serif TC', serif;
+            background-color: #0c0908;
+            color: #e5ded2;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .font-cinzel-dec {
+            font-family: 'Cinzel Decorative', 'Cinzel', serif;
+            /* 關閉裝飾連字 (Ligatures)，防止 'OO' 被字型自動合併成緊黏符號 */
+            font-variant-ligatures: none;
+            font-feature-settings: "liga" 0, "clig" 0;
+            letter-spacing: 0.05em;
+        }
+
+        /* 羊皮紙面板質感 */
+        .parchment-panel {
+            background: radial-gradient(circle at 50% 30%, #201b16 0%, #15110e 80%, #0d0a08 100%);
+            border: 2px solid #5a4525;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.8),
+                        inset 0 0 40px rgba(0, 0, 0, 0.7),
+                        0 0 15px rgba(197, 160, 89, 0.25);
+            position: relative;
+        }
+
+        /* 燭光搖曳效果 */
+        .candle-flicker {
+            animation: flicker 4s infinite alternate ease-in-out;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.9; filter: drop-shadow(0 0 18px rgba(255, 175, 55, 0.35)); }
+            25% { opacity: 0.82; filter: drop-shadow(0 0 14px rgba(245, 150, 40, 0.25)); }
+            50% { opacity: 0.96; filter: drop-shadow(0 0 24px rgba(255, 190, 70, 0.45)); }
+            75% { opacity: 0.86; filter: drop-shadow(0 0 16px rgba(240, 160, 45, 0.3)); }
+            100% { opacity: 0.92; filter: drop-shadow(0 0 20px rgba(255, 180, 50, 0.4)); }
+        }
+
+        /* 魔法金色按鈕 */
+        .btn-magic {
+            background: linear-gradient(135deg, #3d2c16 0%, #22180c 100%);
+            border: 1px solid #94713a;
+            color: #ecd5a5;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 235, 170, 0.2);
+        }
+
+        .btn-magic:hover {
+            border-color: #ffd778;
+            color: #fff4d1;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.5), inset 0 0 8px rgba(255, 215, 0, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .btn-magic:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.8);
+        }
+
+        /* 激活模式鈕 */
+        .btn-mode-active {
+            background: linear-gradient(135deg, #634316 0%, #3a250a 100%) !important;
+            border-color: #f7ca68 !important;
+            color: #ffe6a3 !important;
+            box-shadow: 0 0 18px rgba(245, 185, 75, 0.55), inset 0 0 10px rgba(255, 215, 0, 0.35) !important;
+        }
+
+        /* 死神的聖物 SVG 發光效果 */
+        .hallows-part {
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: stroke 0.3s ease, filter 0.3s ease;
+        }
+
+        /* 燃燒熱浪微幅跳動 */
+        .burning-edge-pulse {
+            animation: burnHeat 0.35s infinite alternate ease-in-out;
+        }
+
+        @keyframes burnHeat {
+            0% { filter: drop-shadow(0 0 5px #ff5500) drop-shadow(0 0 12px #ff2200); }
+            100% { filter: drop-shadow(0 0 9px #ffaa00) drop-shadow(0 0 20px #ff4400); }
+        }
+
+        /* 光束聚合專用混合濾鏡 */
+        .light-beam-layer {
+            mix-blend-mode: screen;
+        }
+
+        /* 自訂滾動條 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #110e0c;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a3821;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #805e32;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-3 sm:p-6 relative bg-gradient-to-b from-[#0e0a08] via-[#14100c] to-[#070504]">
+
+    <!-- 背景動態魔力星塵 Canvas -->
+    <canvas id="particlesCanvas" class="fixed inset-0 pointer-events-none z-0"></canvas>
+
+    <!-- 頂部標題區 -->
+    <header class="relative z-10 text-center my-2 sm:my-4 px-2 w-full max-w-2xl mx-auto overflow-hidden">
+        <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black font-cinzel-dec text-[#f5dab0] tracking-wider candle-flicker leading-tight">
+            HOGWARTS
+        </h1>
+        <div class="text-xs sm:text-sm md:text-base font-cinzel text-[#d5b37e] tracking-widest uppercase mt-0.5 whitespace-nowrap opacity-90">
+            School of Witchcraft and Wizardry
+        </div>
+        <p class="text-[11px] sm:text-xs text-[#9e876a] mt-1.5 italic tracking-widest font-serif whitespace-nowrap">
+            Draco dormiens nunquam titillandus.
+        </p>
+    </header>
+
+    <!-- 主面板 -->
+    <main class="w-full max-w-xl z-10 parchment-panel rounded-2xl p-4 sm:p-7 my-auto relative">
+        
+        <!-- 四角古老裝飾紋飾 -->
+        <div class="absolute top-2 left-2 text-[#8b6e3f] text-xs pointer-events-none opacity-60">✦ ──</div>
+        <div class="absolute top-2 right-2 text-[#8b6e3f] text-xs pointer-events-none opacity-60">── ✦</div>
+        <div class="absolute bottom-2 left-2 text-[#8b6e3f] text-xs pointer-events-none opacity-60">✦ ──</div>
+        <div class="absolute bottom-2 right-2 text-[#8b6e3f] text-xs pointer-events-none opacity-60">── ✦</div>
+
+        <!-- 模式切換器 (專注 Focus / 休息 Break) -->
+        <div class="flex justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+            <button id="modeFocusBtn" class="btn-magic btn-mode-active px-4 sm:px-6 py-2 rounded-xl text-xs sm:text-sm font-bold tracking-wider flex items-center gap-2">
+                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 fill-current" viewBox="0 0 24 24">
+                    <!-- 古典閃電符號 -->
+                    <path d="M13 2L3 14h7l-2 8 10-12h-7l2-8z"/>
+                </svg>
+                <span>專注修煉 (Focus)</span>
+            </button>
+            <button id="modeBreakBtn" class="btn-magic px-4 sm:px-6 py-2 rounded-xl text-xs sm:text-sm font-bold tracking-wider flex items-center gap-2">
+                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 fill-none stroke-current stroke-2 stroke-linecap-round stroke-linejoin-round" viewBox="0 0 24 24">
+                    <!-- 古典茶杯與茶霧符號 -->
+                    <path d="M17 8h1a4 4 0 0 1 0 8h-1"/>
+                    <path d="M3 8h14v7a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/>
+                    <line x1="6" y1="1" x2="6" y2="4"/>
+                    <line x1="10" y1="1" x2="10" y2="4"/>
+                    <line x1="14" y1="1" x2="14" y2="4"/>
+                </svg>
+                <span>霍格華茲小憩 (Break)</span>
+            </button>
+        </div>
+
+        <!-- 核心死神的聖物視覺進度條與倒數計時 -->
+        <div class="flex flex-col items-center justify-center relative my-2">
+            
+            <!-- 容器寬度與按鈕組寬度 (w-fit mx-auto) 精確一致，死神聖物保持在幾何正中心 -->
+            <div id="timerAlignContainer" class="relative w-fit mx-auto h-52 sm:h-60 flex items-center justify-between">
+
+                <!-- 左側：分鐘 (MINUTES) - 靠左對齊，第一位數與專注修煉的閃電符號垂直對齊 -->
+                <div id="minAlignCol" class="flex flex-col items-start pointer-events-none z-20">
+                    <div class="text-left">
+                        <span id="timerMinDisplay" class="text-3xl sm:text-5xl md:text-6xl font-black font-cinzel-dec tracking-wider text-[#fff4d1] candle-flicker tabular-nums drop-shadow-[0_2px_14px_rgba(0,0,0,0.9)] inline-block">
+                            25
+                        </span>
+                        <div class="text-[9px] sm:text-[10px] uppercase tracking-widest text-[#caa567] font-semibold flex items-center justify-start gap-1 mt-0.5">
+                            <span class="inline-block w-2.5 h-[1px] bg-[#8a6a3b]"></span>
+                            <span>MIN</span>
+                            <span class="inline-block w-2.5 h-[1px] bg-[#8a6a3b]"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 中央：死神的聖物 SVG 儀表與動態星塵光環 Canvas（絕對錨定正中央，絕不受任何文字變化推擠） -->
+                <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 sm:w-56 sm:h-56 shrink-0 flex items-center justify-center pointer-events-none overflow-visible">
+                    <!-- 死神的聖物星塵粒子軌跡 Canvas -->
+                    <canvas id="hallowsParticlesCanvas" class="absolute inset-0 pointer-events-none z-10 w-full h-full"></canvas>
+
+                    <!-- 背景導引微弱古老符文輪廓：擴展 viewBox 避免光暈被裁切 -->
+                    <svg viewBox="-25 -15 250 220" class="w-full h-full absolute inset-0 opacity-15 pointer-events-none overflow-visible">
+                        <!-- 三角形：隱形斗篷 (Cloak) -->
+                        <polygon points="100,20 185,170 15,170" fill="none" stroke="#d4af37" stroke-width="2" />
+                        <!-- 圓形：重生石 (Stone) -->
+                        <circle cx="100" cy="118" r="48" fill="none" stroke="#d4af37" stroke-width="2" />
+                        <!-- 直線：接骨木魔杖 (Elder Wand) -->
+                        <line x1="100" y1="20" x2="100" y2="170" stroke="#d4af37" stroke-width="2" />
+                    </svg>
+
+                    <!-- 魔法光束聚合 (Converging Light Beam) SVG：擴大 viewBox 與濾鏡邊界，徹底消除下角截斷 -->
+                    <svg id="hallowsSvg" viewBox="-25 -15 250 220" class="w-full h-full absolute inset-0 pointer-events-none light-beam-layer overflow-visible">
+                        <defs>
+                            <!-- 超柔光霧散溢濾鏡 (Wide Ambient Aura) - 擴大濾鏡採樣範圍防截斷 -->
+                            <filter id="wideAuraGlow" x="-80%" y="-80%" width="260%" height="260%">
+                                <feGaussianBlur stdDeviation="9" result="blurWide" />
+                                <feGaussianBlur stdDeviation="4.5" result="blurMid" />
+                                <feMerge>
+                                    <feMergeNode in="blurWide" />
+                                    <feMergeNode in="blurMid" />
+                                </feMerge>
+                            </filter>
+
+                            <!-- 光芯凝聚濾鏡 (Converging Beam Core) -->
+                            <filter id="beamCoreGlow" x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation="1.8" result="softEdge" />
+                                <feMerge>
+                                    <feMergeNode in="softEdge" />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+
+                            <!-- 熾熱燃燒熔融邊緣濾鏡 (Incineration Flame Edge Glow) -->
+                            <filter id="flameEmberGlow" x="-60%" y="-60%" width="220%" height="220%">
+                                <feGaussianBlur stdDeviation="3.5" result="emberGlow" />
+                                <feColorMatrix type="matrix" values="
+                                    1 0 0 0 0.8
+                                    0 0.4 0 0 0.2
+                                    0 0 0 0 0.05
+                                    0 0 0 1 0" in="emberGlow" result="flameColor" />
+                                <feMerge>
+                                    <feMergeNode in="flameColor" />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                        </defs>
+
+                        <!-- 最外層：瀰漫無邊界光霧 (Ambient Soft Glow) -->
+                        <g filter="url(#wideAuraGlow)" opacity="0.65">
+                            <polygon id="hallowTriangleAura" points="100,20 185,170 15,170" 
+                                     fill="none" stroke="#f0c265" stroke-width="12" 
+                                     stroke-dasharray="510" stroke-dashoffset="0" stroke-linecap="round" />
+                            <circle id="hallowCircleAura" cx="100" cy="118" r="48" 
+                                    fill="none" stroke="#f5cf7a" stroke-width="12" 
+                                    stroke-dasharray="302" stroke-dashoffset="0" stroke-linecap="round" />
+                            <line id="hallowWandAura" x1="100" y1="20" x2="100" y2="170" 
+                                  stroke="#f5cf7a" stroke-width="13" 
+                                  stroke-dasharray="150" stroke-dashoffset="0" stroke-linecap="round" />
+                        </g>
+
+                        <!-- 中層：光束凝聚過渡層 (Converging Beam Intermediate) -->
+                        <g opacity="0.8">
+                            <polygon id="hallowTriangleMid" class="hallows-part" points="100,20 185,170 15,170" 
+                                     fill="none" stroke="#fedb91" stroke-width="5" 
+                                     stroke-dasharray="510" stroke-dashoffset="0" stroke-linecap="round" />
+                            <circle id="hallowCircleMid" class="hallows-part" cx="100" cy="118" r="48" 
+                                    fill="none" stroke="#fedb91" stroke-width="5" 
+                                    stroke-dasharray="302" stroke-dashoffset="0" stroke-linecap="round" />
+                            <line id="hallowWandMid" class="hallows-part" x1="100" y1="20" x2="100" y2="170" 
+                                  stroke="#fedb91" stroke-width="5" 
+                                  stroke-dasharray="150" stroke-dashoffset="0" stroke-linecap="round" />
+                        </g>
+
+                        <!-- 內層光芯：純粹聚合光束 -->
+                        <g filter="url(#beamCoreGlow)" opacity="0.95">
+                            <!-- 隱形斗篷 (Triangle) -->
+                            <polygon id="hallowTriangle" class="hallows-part" points="100,20 185,170 15,170" 
+                                     fill="none" stroke="#ffffff" stroke-width="2" 
+                                     stroke-dasharray="510" stroke-dashoffset="0" stroke-linecap="round" />
+                            <!-- 重生石 (Circle) -->
+                            <circle id="hallowCircle" class="hallows-part" cx="100" cy="118" r="48" 
+                                     fill="none" stroke="#ffffff" stroke-width="2" 
+                                     stroke-dasharray="302" stroke-dashoffset="0" stroke-linecap="round" />
+                            <!-- 接骨木魔杖 (Wand) -->
+                            <line id="hallowWand" class="hallows-part" x1="100" y1="20" x2="100" y2="170" 
+                                  stroke="#ffffff" stroke-width="2.4" 
+                                  stroke-dasharray="150" stroke-dashoffset="0" stroke-linecap="round" />
+                        </g>
+
+                        <!-- 燃燒前緣熔融火光端點 (Burning Leading Edge Tips) -->
+                        <g id="burningEdgeGroup" filter="url(#flameEmberGlow)" class="burning-edge-pulse">
+                            <circle id="burnTipTriangle" cx="100" cy="20" r="3.2" fill="#fff5d0" opacity="0" />
+                            <circle id="burnTipCircle" cx="148" cy="118" r="3" fill="#fff5d0" opacity="0" />
+                            <circle id="burnTipWand" cx="100" cy="170" r="3.2" fill="#fff5d0" opacity="0" />
+                        </g>
+                    </svg>
+                </div>
+
+                <!-- 右側：秒數 (SECONDS) - 靠右對齊，最後一位數與小憩的右括號垂直對齊 -->
+                <div id="secAlignCol" class="flex flex-col items-end pointer-events-none z-20">
+                    <div class="text-right">
+                        <span id="timerSecDisplay" class="text-3xl sm:text-5xl md:text-6xl font-black font-cinzel-dec tracking-wider text-[#ffdca1] candle-flicker tabular-nums drop-shadow-[0_2px_14px_rgba(0,0,0,0.9)] inline-block">
+                            00
+                        </span>
+                        <div class="text-[9px] sm:text-[10px] uppercase tracking-widest text-[#caa567] font-semibold flex items-center justify-end gap-1 mt-0.5">
+                            <span class="inline-block w-2.5 h-[1px] bg-[#8a6a3b]"></span>
+                            <span>SEC</span>
+                            <span class="inline-block w-2.5 h-[1px] bg-[#8a6a3b]"></span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 聖物下方：對稱狀態膠囊標籤 -->
+            <div class="flex items-center gap-2 mt-2 px-3 py-0.5 rounded-full bg-[#120e0b]/80 border border-[#69502a]/60 shadow-md backdrop-blur-xs pointer-events-none z-20">
+                <span id="sessionStatusText" class="text-[10px] text-[#cca664] uppercase tracking-widest font-bold">
+                    魔咒研讀中
+                </span>
+                <span class="text-[9px] text-[#6b5536]">•</span>
+                <span id="progressPercent" class="text-[10px] text-[#dfc38f] font-mono">
+                    魔力蓄能 100%
+                </span>
+            </div>
+
+            <!-- 狀態備註提醒 -->
+            <div id="ambientHint" class="text-xs text-[#a98f6d] mt-2 text-center flex items-center gap-1.5 h-5">
+                <span class="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                <span id="hintText">畢業在即，你正為了即將來臨的N.E.W.T.s做準備……</span>
+            </div>
+        </div>
+
+        <!-- 操控按鈕列 -->
+        <div class="flex items-center justify-center gap-3 sm:gap-4 mt-3">
+            <button id="startPauseBtn" class="btn-magic px-6 sm:px-8 py-2.5 rounded-xl text-sm sm:text-base font-bold tracking-widest flex items-center gap-2">
+                <span id="playIconWrap" class="w-4 h-4 flex items-center justify-center">
+                    <svg id="playIconSvg" class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                        <polygon points="6,3 20,12 6,21"/>
+                    </svg>
+                </span>
+                <span id="startBtnText">誦咒開始</span>
+            </button>
+            <button id="resetBtn" class="btn-magic px-4 sm:px-5 py-2.5 rounded-xl text-sm sm:text-base font-bold tracking-wider flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 fill-none stroke-current stroke-2 stroke-linecap-round stroke-linejoin-round" viewBox="0 0 24 24">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                </svg>
+                <span>重置儀式</span>
+            </button>
+        </div>
+
+        <!-- 時間微調設定區 -->
+        <div class="mt-4 pt-3 border-t border-[#463620]/80">
+            <div class="flex flex-wrap items-center justify-between text-xs text-[#c5a777] gap-3">
+                <div class="flex items-center gap-2">
+                    <span>專注分鐘:</span>
+                    <div class="flex items-center border border-[#715428] rounded-lg overflow-hidden bg-[#1a140f]">
+                        <button id="focusDec" class="px-2 py-1 hover:bg-[#3d2d17] text-[#edd39b] font-bold">-</button>
+                        <input id="focusInput" type="number" min="1" max="180" value="25" class="w-12 py-1 text-center bg-transparent font-mono text-[#fff4d0] focus:outline-none focus:bg-[#2b1f13]">
+                        <button id="focusInc" class="px-2 py-1 hover:bg-[#3d2d17] text-[#edd39b] font-bold">+</button>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <span>休息分鐘:</span>
+                    <div class="flex items-center border border-[#715428] rounded-lg overflow-hidden bg-[#1a140f]">
+                        <button id="breakDec" class="px-2 py-1 hover:bg-[#3d2d17] text-[#edd39b] font-bold">-</button>
+                        <input id="breakInput" type="number" min="1" max="60" value="5" class="w-12 py-1 text-center bg-transparent font-mono text-[#fff4d0] focus:outline-none focus:bg-[#2b1f13]">
+                        <button id="breakInc" class="px-2 py-1 hover:bg-[#3d2d17] text-[#edd39b] font-bold">+</button>
+                    </div>
+                </div>
+
+                <!-- 環境音效開關 -->
+                <button id="toggleSoundBtn" class="ml-auto btn-magic px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
+                    <span id="soundIconWrap" class="w-3.5 h-3.5 flex items-center justify-center">
+                        <svg id="soundIconSvg" class="w-3.5 h-3.5 fill-none stroke-current stroke-2 stroke-linecap-round stroke-linejoin-round" viewBox="0 0 24 24">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"/>
+                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                        </svg>
+                    </span>
+                    <span id="soundStatusText">古堡雨聲環境音：開</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 固定高度的留聲機槽位（避免切換模式時主容器高度變化而造成座標跑位） -->
+        <div class="h-14 mt-3 pt-2.5 border-t border-dashed border-[#574328]/50 flex items-center">
+            <div id="breakStorySection" class="w-full transition-all duration-300 opacity-0 pointer-events-none">
+                <div class="bg-[#120f0c]/90 px-3.5 py-2 rounded-xl border border-[#6b5029] flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2 text-[#edd39b]">
+                        <!-- 已移除留聲機前方的魔杖圖示 🪄 -->
+                        <div id="speechActiveIndicator" class="inline-flex gap-0.5 items-end h-2.5 opacity-0 transition-opacity">
+                            <span class="w-0.5 bg-amber-400 rounded-sm animate-bounce" style="height: 100%; animation-duration: 0.8s;"></span>
+                            <span class="w-0.5 bg-amber-400 rounded-sm animate-bounce" style="height: 60%; animation-duration: 1.1s;"></span>
+                            <span class="w-0.5 bg-amber-400 rounded-sm animate-bounce" style="height: 80%; animation-duration: 0.6s;"></span>
+                        </div>
+                        <span id="audioTrackStatus" class="text-[11px] text-[#cbb28b] truncate max-w-[150px] sm:max-w-[220px]">
+                            留聲機：<span id="audioSourceLabel">Hedwigstheme.mp3</span>
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="replayVoiceBtn" class="text-[11px] text-[#edd39b] hover:text-[#fff] px-2 py-1 rounded bg-[#382a17] border border-[#7a582b] flex items-center gap-1.5 transition">
+                            <span id="musicPlayIconWrap" class="w-3 h-3 flex items-center justify-center">
+                                <svg class="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>
+                            </span>
+                            <span id="musicBtnLabel">播放</span>
+                        </button>
+                        <label class="cursor-pointer text-[11px] px-2 py-1 rounded bg-[#2a1e12] hover:bg-[#3d2b18] border border-[#715428] text-[#e0c28d] transition flex items-center gap-1">
+                            <svg class="w-3 h-3 fill-none stroke-current stroke-2 stroke-linecap-round stroke-linejoin-round" viewBox="0 0 24 24">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            <span>換音檔</span>
+                            <input id="audioFileInput" type="file" accept="audio/*" class="hidden">
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 隱藏的音訊元件：播放附件音樂 -->
+    <audio id="breakAudioPlayer" src="Hedwigstheme.mp3" preload="auto" loop></audio>
+
+    <!-- 底部學院徽記與說明 -->
+    <footer class="relative z-10 text-center my-3 text-[11px] text-[#78644b]">
+        <p>Gryffindor • Slytherin • Ravenclaw • Hufflepuff</p>
+    </footer>
+
+    <!-- 簡易浮動提示盒 (取代 alert，採用古典貓頭鷹徽記向量) -->
+    <div id="magicToast" class="fixed top-6 right-6 max-w-sm p-4 bg-[#1e1711] border-2 border-[#b88c47] text-[#ecdab9] rounded-xl shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none z-50 flex items-center gap-3">
+        <svg class="w-6 h-6 text-[#fed482] shrink-0 fill-none stroke-current stroke-2 stroke-linecap-round stroke-linejoin-round" viewBox="0 0 24 24">
+            <!-- 古典貓頭鷹向量輪廓 -->
+            <path d="M12 2C8 2 5 5 5 9c0 5 3 9 7 11 4-2 7-6 7-11 0-4-3-7-7-7z"/>
+            <circle cx="9" cy="9" r="1.5" fill="currentColor"/>
+            <circle cx="15" cy="9" r="1.5" fill="currentColor"/>
+            <path d="M12 11l-1 2h2l-1-2z" fill="currentColor"/>
+            <path d="M7 3l3 3m7-3l-3 3"/>
+        </svg>
+        <div>
+            <div id="toastTitle" class="font-bold text-xs text-[#fed482]">霍格華茲信件通知</div>
+            <div id="toastMessage" class="text-xs mt-0.5">時光轉換器完成轉動！</div>
+        </div>
+    </div>
+
+    <!-- 邏輯腳本：計時器、Web Audio 合成音效、粒子背景 -->
+    <script>
+        /* =========================================================================
+           1. DOM 節點引用與核心計時變數
+           ========================================================================= */
+        const timerMinDisplay = document.getElementById('timerMinDisplay');
+        const timerSecDisplay = document.getElementById('timerSecDisplay');
+        const sessionStatusText = document.getElementById('sessionStatusText');
+        const progressPercent = document.getElementById('progressPercent');
+        const hintText = document.getElementById('hintText');
+        const startPauseBtn = document.getElementById('startPauseBtn');
+        const startBtnText = document.getElementById('startBtnText');
+        const playIconWrap = document.getElementById('playIconWrap');
+        const resetBtn = document.getElementById('resetBtn');
+        const modeFocusBtn = document.getElementById('modeFocusBtn');
+        const modeBreakBtn = document.getElementById('modeBreakBtn');
+
+        const focusInput = document.getElementById('focusInput');
+        const focusDec = document.getElementById('focusDec');
+        const focusInc = document.getElementById('focusInc');
+        const breakInput = document.getElementById('breakInput');
+        const breakDec = document.getElementById('breakDec');
+        const breakInc = document.getElementById('breakInc');
+
+        const toggleSoundBtn = document.getElementById('toggleSoundBtn');
+        const soundIconWrap = document.getElementById('soundIconWrap');
+        const soundStatusText = document.getElementById('soundStatusText');
+
+        const breakStorySection = document.getElementById('breakStorySection');
+        const replayVoiceBtn = document.getElementById('replayVoiceBtn');
+        const musicPlayIconWrap = document.getElementById('musicPlayIconWrap');
+        const musicBtnLabel = document.getElementById('musicBtnLabel');
+        const speechActiveIndicator = document.getElementById('speechActiveIndicator');
+        const breakAudioPlayer = document.getElementById('breakAudioPlayer');
+        const audioFileInput = document.getElementById('audioFileInput');
+        const audioSourceLabel = document.getElementById('audioSourceLabel');
+
+        // 定義標準向量 SVG 圖標範本（確保在 iOS/Android 上維持古典典雅樣式）
+        const ICONS = {
+            play: `<svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>`,
+            pause: `<svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`,
+            musicPlay: `<svg class="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg>`,
+            musicPause: `<svg class="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`,
+            soundOn: `<svg class="w-3.5 h-3.5 fill-none stroke-current stroke-2 stroke-linecap-round stroke-linejoin-round" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>`,
+            soundMute: `<svg class="w-3.5 h-3.5 fill-none stroke-current stroke-2 stroke-linecap-round stroke-linejoin-round" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`
+        };
+
+        // 死神的聖物 SVG 元素
+        const hallowTriangle = document.getElementById('hallowTriangle');
+        const hallowCircle = document.getElementById('hallowCircle');
+        const hallowWand = document.getElementById('hallowWand');
+        const hallowTriangleMid = document.getElementById('hallowTriangleMid');
+        const hallowCircleMid = document.getElementById('hallowCircleMid');
+        const hallowWandMid = document.getElementById('hallowWandMid');
+        const hallowTriangleAura = document.getElementById('hallowTriangleAura');
+        const hallowCircleAura = document.getElementById('hallowCircleAura');
+        const hallowWandAura = document.getElementById('hallowWandAura');
+
+        // 燃燒端點元素
+        const burnTipTriangle = document.getElementById('burnTipTriangle');
+        const burnTipCircle = document.getElementById('burnTipCircle');
+        const burnTipWand = document.getElementById('burnTipWand');
+
+        const TRIANGLE_LEN = 510;
+        const CIRCLE_LEN = 302;
+        const WAND_LEN = 150;
+
+        // 計時器狀態變數
+        let focusMinutes = 25;
+        let breakMinutes = 5;
+        let isFocusMode = true;
+        let isRunning = false;
+        let totalSeconds = focusMinutes * 60;
+        let remainingSeconds = totalSeconds;
+        let timerInterval = null;
+        let ambientSoundEnabled = true;
+
+        // 毫秒級流暢平滑進度變數（消除頓感）
+        let targetRatio = 1.0;
+        let currentRenderRatio = 1.0;
+        let lastFrameTime = performance.now();
+
+        /* =========================================================================
+           2. Web Audio API 音效核心系統（細雨環境音、羊皮紙翻頁聲、陶瓷杯盞輕碰聲）
+           ========================================================================= */
+        let audioCtx = null;
+        let ambientMasterGain = null;
+        let rainNoiseNode = null;
+        let rainFilterNode = null;
+        let pageTurnTimer = null;
+        let cupClinkTimer = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContextClass) return;
+                audioCtx = new AudioContextClass();
+            }
+
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            if (!ambientMasterGain && audioCtx) {
+                ambientMasterGain = audioCtx.createGain();
+                ambientMasterGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+                ambientMasterGain.connect(audioCtx.destination);
+
+                setupContinuousRain();
+                schedulePageTurns();
+                scheduleCupClinks();
+            }
+        }
+
+        // 建立細膩連續的古堡窗外細雨聲
+        function setupContinuousRain() {
+            if (!audioCtx || rainNoiseNode) return;
+
+            const bufferSize = audioCtx.sampleRate * 2;
+            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+
+            // 雙層粉紅/低通噪聲合成
+            let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                b0 = 0.99886 * b0 + white * 0.0555179;
+                b1 = 0.99332 * b1 + white * 0.0750759;
+                b2 = 0.96900 * b2 + white * 0.1538520;
+                b3 = 0.86650 * b3 + white * 0.3104856;
+                b4 = 0.55000 * b4 + white * 0.5329522;
+                b5 = -0.7616 * b5 - white * 0.0168980;
+                output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.07;
+                b6 = white * 0.115926;
+            }
+
+            rainNoiseNode = audioCtx.createBufferSource();
+            rainNoiseNode.buffer = noiseBuffer;
+            rainNoiseNode.loop = true;
+
+            // 溫和低通濾波器，調降截止頻率至 680Hz，消除乾癟雜躁高頻，呈現深沉柔順的夏日綿綿細雨
+            rainFilterNode = audioCtx.createBiquadFilter();
+            rainFilterNode.type = 'lowpass';
+            rainFilterNode.frequency.setValueAtTime(680, audioCtx.currentTime);
+
+            const rainGain = audioCtx.createGain();
+            rainGain.gain.setValueAtTime(0.45, audioCtx.currentTime);
+
+            rainNoiseNode.connect(rainFilterNode);
+            rainFilterNode.connect(rainGain);
+            rainGain.connect(ambientMasterGain);
+
+            rainNoiseNode.start(0);
+        }
+
+        // 輕柔多樣化羊皮紙古籍翻頁聲 (Page Turn)
+        function triggerPageTurnSound() {
+            if (!audioCtx || !ambientSoundEnabled || !isRunning || !isFocusMode) return;
+
+            const now = audioCtx.currentTime;
+            const turnDuration = 0.28 + Math.random() * 0.18;
+            const pageNoiseBuffer = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * turnDuration), audioCtx.sampleRate);
+            const data = pageNoiseBuffer.getChannelData(0);
+
+            for (let i = 0; i < data.length; i++) {
+                data[i] = (Math.random() * 2 - 1);
+            }
+
+            const pageNoise = audioCtx.createBufferSource();
+            pageNoise.buffer = pageNoiseBuffer;
+
+            // 隨機帶通濾波器，模擬四種不同力道與角度的翻頁沙沙聲
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(1400 + Math.random() * 800, now);
+            filter.Q.setValueAtTime(1.8 + Math.random() * 1.2, now);
+
+            const gain = audioCtx.createGain();
+            const peak = 0.16 + Math.random() * 0.08;
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.linearRampToValueAtTime(peak, now + turnDuration * 0.35);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + turnDuration);
+
+            pageNoise.connect(filter);
+            filter.connect(gain);
+            gain.connect(ambientMasterGain);
+
+            pageNoise.start(now);
+            pageNoise.stop(now + turnDuration);
+        }
+
+        function schedulePageTurns() {
+            if (pageTurnTimer) clearTimeout(pageTurnTimer);
+            // 翻頁頻率：約 20~30 秒一次
+            const nextInterval = 20000 + Math.random() * 10000;
+            pageTurnTimer = setTimeout(() => {
+                triggerPageTurnSound();
+                schedulePageTurns();
+            }, nextInterval);
+        }
+
+        // 清脆溫潤的陶瓷杯盞碰撞聲 (Porcelain Teacup & Saucer Clink)
+        function triggerCupSaucerSound() {
+            if (!audioCtx || !ambientSoundEnabled || !isRunning || !isFocusMode) return;
+
+            const now = audioCtx.currentTime;
+            // 瓷器碰撞基頻與諧波
+            const baseFreq = 2600 + Math.random() * 600;
+            const osc = audioCtx.createOscillator();
+            const oscHarmonic = audioCtx.createOscillator();
+            const clinkGain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(baseFreq, now);
+
+            oscHarmonic.type = 'sine';
+            oscHarmonic.frequency.setValueAtTime(baseFreq * 2.38, now); // 非整數瓷質微泛音
+
+            const clinkDuration = 0.09 + Math.random() * 0.05;
+            clinkGain.gain.setValueAtTime(0.0001, now);
+            clinkGain.gain.linearRampToValueAtTime(0.045, now + 0.003);
+            clinkGain.gain.exponentialRampToValueAtTime(0.0001, now + clinkDuration);
+
+            osc.connect(clinkGain);
+            oscHarmonic.connect(clinkGain);
+            clinkGain.connect(ambientMasterGain);
+
+            osc.start(now);
+            oscHarmonic.start(now);
+            osc.stop(now + clinkDuration);
+            oscHarmonic.stop(now + clinkDuration);
+        }
+
+        function scheduleCupClinks() {
+            if (cupClinkTimer) clearTimeout(cupClinkTimer);
+            // 杯盞碰擊頻率：約 30~45 秒一次
+            const nextInterval = 30000 + Math.random() * 15000;
+            cupClinkTimer = setTimeout(() => {
+                triggerCupSaucerSound();
+                scheduleCupClinks();
+            }, nextInterval);
+        }
+
+        /* =========================================================================
+           2.1 魔法留聲機：附件音樂控制（支援 iOS / 手機端 Web Audio GainNode 平滑淡出）
+           ========================================================================= */
+        let isMusicPlaying = false;
+        let fadeInterval = null;
+        let breakAudioSourceNode = null;
+        let breakAudioGainNode = null;
+
+        // 初始化突破手機端 (iOS Safari) 鎖定 volume 的 Web Audio 音訊節點
+        function ensureBreakAudioGainNode() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) audioCtx = new AudioContextClass();
+            }
+            if (audioCtx && !breakAudioSourceNode && breakAudioPlayer) {
+                try {
+                    breakAudioSourceNode = audioCtx.createMediaElementSource(breakAudioPlayer);
+                    breakAudioGainNode = audioCtx.createGain();
+                    breakAudioGainNode.gain.setValueAtTime(0.85, audioCtx.currentTime);
+                    breakAudioSourceNode.connect(breakAudioGainNode);
+                    breakAudioGainNode.connect(audioCtx.destination);
+                } catch (e) {
+                    console.warn("MediaElementSource 已初始化或受阻:", e);
+                }
+            }
+        }
+
+        function playBreakMusic() {
+            if (!breakAudioPlayer) return;
+            initAudio();
+            ensureBreakAudioGainNode();
+
+            if (fadeInterval) {
+                clearInterval(fadeInterval);
+                fadeInterval = null;
+            }
+
+            // 雙層保障：同時設定 HTML volume 與 Web Audio GainNode（相容手機與桌面端）
+            breakAudioPlayer.volume = 0.85;
+            if (breakAudioGainNode && audioCtx) {
+                breakAudioGainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+                breakAudioGainNode.gain.setValueAtTime(0.85, audioCtx.currentTime);
+            }
+
+            const playPromise = breakAudioPlayer.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    isMusicPlaying = true;
+                    if (musicPlayIconWrap) musicPlayIconWrap.innerHTML = ICONS.musicPause;
+                    if (musicBtnLabel) musicBtnLabel.textContent = "暫停音樂";
+                    if (speechActiveIndicator) speechActiveIndicator.classList.remove('opacity-0');
+                    if (audioSourceLabel) {
+                        audioSourceLabel.title = "留聲機正在播放中...";
+                    }
+                }).catch(err => {
+                    console.warn("音訊載入或自動播放受阻:", err);
+                    isMusicPlaying = false;
+                    if (musicPlayIconWrap) musicPlayIconWrap.innerHTML = ICONS.musicPlay;
+                    if (musicBtnLabel) musicBtnLabel.textContent = "播放音樂";
+                    if (audioSourceLabel) {
+                        audioSourceLabel.innerHTML = `<span class="text-amber-400">點右側選取本機音檔</span>`;
+                    }
+                    showToast("音訊載入提示", "若未聽到音樂，請點選「換音檔」選擇附件 mp3。");
+                });
+            }
+        }
+
+        function stopBreakMusic() {
+            if (!breakAudioPlayer) return;
+            if (fadeInterval) {
+                clearInterval(fadeInterval);
+                fadeInterval = null;
+            }
+            breakAudioPlayer.pause();
+            isMusicPlaying = false;
+            if (musicPlayIconWrap) musicPlayIconWrap.innerHTML = ICONS.musicPlay;
+            if (musicBtnLabel) musicBtnLabel.textContent = "播放音樂";
+            if (speechActiveIndicator) speechActiveIndicator.classList.add('opacity-0');
+        }
+
+        function resetBreakMusic() {
+            if (!breakAudioPlayer) return;
+            if (fadeInterval) {
+                clearInterval(fadeInterval);
+                fadeInterval = null;
+            }
+            breakAudioPlayer.pause();
+            breakAudioPlayer.currentTime = 0;
+            breakAudioPlayer.volume = 0.85;
+            if (breakAudioGainNode && audioCtx) {
+                breakAudioGainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+                breakAudioGainNode.gain.setValueAtTime(0.85, audioCtx.currentTime);
+            }
+            isMusicPlaying = false;
+            if (musicPlayIconWrap) musicPlayIconWrap.innerHTML = ICONS.musicPlay;
+            if (musicBtnLabel) musicBtnLabel.textContent = "播放音樂";
+            if (speechActiveIndicator) speechActiveIndicator.classList.add('opacity-0');
+        }
+
+        // 音樂漸弱淡出：同時透過 Web Audio GainNode 與 Interval 降音量，確保 iOS/Android 完美漸弱
+        function fadeOutBreakMusic(durationMs = 4000, targetVol = 0.03) {
+            if (!breakAudioPlayer || !isMusicPlaying) return;
+            if (fadeInterval) clearInterval(fadeInterval);
+
+            // 1. Web Audio GainNode 線性衰減（突破 iOS 限制）
+            if (breakAudioGainNode && audioCtx) {
+                const now = audioCtx.currentTime;
+                breakAudioGainNode.gain.cancelScheduledValues(now);
+                breakAudioGainNode.gain.setValueAtTime(breakAudioGainNode.gain.value, now);
+                breakAudioGainNode.gain.linearRampToValueAtTime(targetVol, now + (durationMs / 1000));
+            }
+
+            // 2. 傳統 HTML Audio volume 定時器衰減（適用支援的桌面端）
+            const startVol = breakAudioPlayer.volume;
+            const stepInterval = 50;
+            const steps = durationMs / stepInterval;
+            const volStep = (startVol - targetVol) / steps;
+
+            fadeInterval = setInterval(() => {
+                if (breakAudioPlayer.volume - volStep > targetVol) {
+                    breakAudioPlayer.volume -= volStep;
+                } else {
+                    breakAudioPlayer.volume = targetVol;
+                    clearInterval(fadeInterval);
+                    fadeInterval = null;
+                }
+            }, stepInterval);
+        }
+
+        // 音訊錯誤處理：若瀏覽器找不到相對路徑，即時給予提示引導使用者點選
+        if (breakAudioPlayer) {
+            breakAudioPlayer.addEventListener('error', (e) => {
+                console.warn("無法從相對路徑讀取音訊檔，請使用檔案選擇器指派本地檔案。", e);
+                if (audioSourceLabel) {
+                    audioSourceLabel.innerHTML = `<span class="text-amber-400">尚未載入（請點右側選取本機音檔）</span>`;
+                }
+            });
+        }
+
+        /* =========================================================================
+           3.1 英國霍格華茲小組討論機制（濃厚英倫腔調 RP + 道地俚語口吻）
+           ========================================================================= */
+        const STUDENT_PROFILES = {
+            hermione: { gender: "female", pitch: 1.15, rate: 0.92 },
+            ron:      { gender: "male",   pitch: 0.80, rate: 0.88 },
+            luna:     { gender: "female", pitch: 1.28, rate: 0.78 },
+            harry:    { gender: "male",   pitch: 0.90, rate: 0.89 }
+        };
+
+        // 注入濃厚英倫用詞（Blimey, Rubbish, Rather, Proper, Bloody brilliant）的連續對話組
+        const CONVERSATION_EXCHANGES = [
+            // 對話組 1: 飄浮咒與發音細節
+            [
+                { speaker: "hermione", text: "Honestly Ronald, it's Levi-o-sa, not Levio-sar! You're making a right pig's ear of it." },
+                { speaker: "ron",      text: "Blimey Hermione, keep your hair on! My feather's barely twitching as it is." },
+                { speaker: "hermione", text: "A proper swish and flick, nice and crisp! Don't go waving it about like a ruddy club." },
+                { speaker: "harry",    text: "Keep it down, mate... Madam Pince has got her eagle eye straight on us." }
+            ],
+            // 對話組 2: 變形學論文與英倫雨夜
+            [
+                { speaker: "ron",      text: "Bloody hell... this Transfiguration essay is complete and utter rubbish. I haven't got a foggiest." },
+                { speaker: "hermione", text: "It's all quite plain on page 142. Do stop whinging and check your wand angles." },
+                { speaker: "ron",      text: "Right, easy for you to say, innit? My brain feels completely scrambled." },
+                { speaker: "luna",     text: "Don't fret... the drizzle against the leaded glass always keeps the Nargles at bay." }
+            ],
+            // 對話組 3: 護法咒與暖心回憶
+            [
+                { speaker: "luna",     text: "Expecto Patronum... you need a memory that's dreadfully happy, you know." },
+                { speaker: "harry",    text: "Spot on, Luna. Let it warm you right through to your bones before you cast." },
+                { speaker: "hermione", text: "Quite right. Lupin said even seasoned wizards take a fair bit of practice." },
+                { speaker: "luna",     text: "A silvery hare or a stag... terribly comforting on a chilly Scottish evening, isn't it?" }
+            ],
+            // 對話組 4: 魔藥學配方與石內卜
+            [
+                { speaker: "hermione", text: "Professor Snape will have us for breakfast if our Draught of Peace isn't spot on tomorrow." },
+                { speaker: "ron",      text: "Is it powdered moonstone first, or the syrup of hellebore? I'm in a proper muddle." },
+                { speaker: "harry",    text: "Hellebore goes in before the simmer turns turquoise, mate. Don't let it boil over." },
+                { speaker: "ron",      text: "Merlin's beard... if my cauldron starts belching black smoke, I'm legging it." }
+            ],
+            // 對話組 5: 古代神秘盧恩文字
+            [
+                { speaker: "hermione", text: "Look here, this ancient Rune translation refers to a rather clever ward near Ravenclaw tower." },
+                { speaker: "luna",     text: "Oh, splendid... it usually means one ought to brew a soothing cup of chamomile." },
+                { speaker: "harry",    text: "Hush up a tick... the prefects are just pacing past the corridor." }
+            ]
+        ];
+
+        let whisperTimeout = null;
+        let isGroupConversationActive = false;
+
+        function startStudentWhisperLoop(isFirstStart = false) {
+            if (whisperTimeout) clearTimeout(whisperTimeout);
+
+            function scheduleNextGroupConversation(customDelay = null) {
+                // 每輪對話間隔調降回 45 ~ 85 秒
+                const quietInterval = customDelay !== null ? customDelay : (45000 + Math.random() * 40000);
+                whisperTimeout = setTimeout(() => {
+                    if (isRunning && isFocusMode && ambientSoundEnabled && 'speechSynthesis' in window) {
+                        playConversationExchange(() => {
+                            scheduleNextGroupConversation();
+                        });
+                    } else {
+                        scheduleNextGroupConversation();
+                    }
+                }, quietInterval);
+            }
+
+            // 初次觸發排程（初次約 20~35 秒，隨後 45~85 秒）
+            const initialDelay = isFirstStart ? (20000 + Math.random() * 15000) : (45000 + Math.random() * 40000);
+            scheduleNextGroupConversation(initialDelay);
+        }
+
+        // 篩選最純粹的英倫腔 (British RP / GB) 音色優先級演算法
+        function pickBestBritishVoice(isFemale) {
+            if (!('speechSynthesis' in window)) return null;
+            const voices = window.speechSynthesis.getVoices();
+            if (!voices || voices.length === 0) return null;
+
+            // 1. 純英式標記 (en-GB, en_GB) 的語音
+            const gbVoices = voices.filter(v => 
+                v.lang === 'en-GB' || v.lang === 'en_GB' || v.lang.toLowerCase().startsWith('en-gb')
+            );
+
+            // 英倫知名語音特徵清單 (Apple, Google, Microsoft)
+            const femaleBritishKeywords = ['serena', 'stephanie', 'kate', 'fiona', 'hazel', 'susan', 'victoria', 'libby', 'sonia', 'female'];
+            const maleBritishKeywords   = ['daniel', 'arthur', 'george', 'oliver', 'malcolm', 'ryan', 'brian', 'male'];
+
+            const keywords = isFemale ? femaleBritishKeywords : maleBritishKeywords;
+
+            // 優先從 en-GB 中尋找性別相符的代表性音色
+            for (const kw of keywords) {
+                const match = gbVoices.find(v => v.name.toLowerCase().includes(kw));
+                if (match) return match;
+            }
+
+            // 若有任何 en-GB 音色則直接採用
+            if (gbVoices.length > 0) return gbVoices[0];
+
+            // 2. 尋找名稱中包含 'United Kingdom' 或 'UK' 的語音
+            const ukVoice = voices.find(v => 
+                (v.name.includes('United Kingdom') || v.name.includes('UK') || v.name.includes('English (UK)')) &&
+                (isFemale ? !v.name.toLowerCase().includes('male') : !v.name.toLowerCase().includes('female'))
+            );
+            if (ukVoice) return ukVoice;
+
+            // 3. 次選澳洲/愛爾蘭等同屬英聯邦發音 (en-AU, en-IE)
+            const commonwealthVoice = voices.find(v => v.lang.startsWith('en-AU') || v.lang.startsWith('en-IE'));
+            if (commonwealthVoice) return commonwealthVoice;
+
+            // 4. 最後回退
+            return voices.find(v => v.lang.startsWith('en'));
+        }
+
+        // 連續演奏 3~4 句對話，句與句之間間隔 1.7 ~ 2.5 秒
+        function playConversationExchange(onExchangeFinished) {
+            if (!('speechSynthesis' in window) || !isRunning || !isFocusMode) {
+                if (onExchangeFinished) onExchangeFinished();
+                return;
+            }
+
+            window.speechSynthesis.cancel();
+
+            const exchange = CONVERSATION_EXCHANGES[Math.floor(Math.random() * CONVERSATION_EXCHANGES.length)];
+            let lineIndex = 0;
+            isGroupConversationActive = true;
+
+            function speakNextLine() {
+                if (!isRunning || !isFocusMode || !ambientSoundEnabled || lineIndex >= exchange.length) {
+                    isGroupConversationActive = false;
+                    if (onExchangeFinished) onExchangeFinished();
+                    return;
+                }
+
+                const line = exchange[lineIndex];
+                const profile = STUDENT_PROFILES[line.speaker] || STUDENT_PROFILES.hermione;
+                const utter = new SpeechSynthesisUtterance(line.text);
+
+                // 取得純粹英式音色
+                const chosenVoice = pickBestBritishVoice(profile.gender === 'female');
+                if (chosenVoice) utter.voice = chosenVoice;
+
+                utter.lang = 'en-GB';
+                utter.volume = 0.08; // 調降為 0.08，更柔和低語
+                utter.pitch = profile.pitch;
+                utter.rate = profile.rate * 0.98; // 稍微放緩語速，凸顯優雅英倫咬字與頓挫
+
+                utter.onend = () => {
+                    lineIndex++;
+                    setTimeout(speakNextLine, 1700 + Math.random() * 800);
+                };
+
+                utter.onerror = () => {
+                    lineIndex++;
+                    setTimeout(speakNextLine, 1200);
+                };
+
+                window.speechSynthesis.speak(utter);
+            }
+
+            speakNextLine();
+        }
+
+        /* =========================================================================
+           5. 畫面更新與死神的聖物動態進度渲染（毫秒級平滑流暢過渡）
+           ========================================================================= */
+        function updateDisplay() {
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+            
+            const minStr = String(minutes).padStart(2, '0');
+            const secStr = String(seconds).padStart(2, '0');
+
+            if (timerMinDisplay) timerMinDisplay.textContent = minStr;
+            if (timerSecDisplay) timerSecDisplay.textContent = secStr;
+            
+            // 比例計算：
+            // 專注模式：100% -> 0% (消耗魔力專注研讀)
+            // 休息模式：0% -> 100% (充盈蓄能恢復魔力，光條由無到有反向凝聚)
+            const remainingRatio = totalSeconds > 0 ? (remainingSeconds / totalSeconds) : 0;
+            targetRatio = isFocusMode ? remainingRatio : (1 - remainingRatio);
+            const percentVal = Math.round(targetRatio * 100);
+
+            if (isFocusMode) {
+                progressPercent.textContent = `魔力蓄能 ${percentVal}%`;
+            } else {
+                progressPercent.textContent = `魔力回復 ${percentVal}%`;
+            }
+
+            // 更新網頁分頁標題
+            document.title = `(${minStr}:${secStr}) 霍格華茲魔法番茄鐘`;
+        }
+
+        // 利用 requestAnimationFrame 進行極致平滑的連續插值渲染（徹底消除 1 秒一跳的頓感）
+        function smoothRenderHallowsLoop(now) {
+            const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
+            lastFrameTime = now;
+
+            // 平滑插值驅近目標值（反應靈敏且毫無頓挫）
+            const lerpSpeed = isRunning ? 6.5 : 12.0;
+            currentRenderRatio += (targetRatio - currentRenderRatio) * (1 - Math.exp(-lerpSpeed * dt));
+
+            const clampedRatio = Math.max(0, Math.min(1, currentRenderRatio));
+
+            // 更新死神的聖物 SVG 描邊偏移：
+            const triOffset = TRIANGLE_LEN * (1 - clampedRatio);
+            const circleOffset = CIRCLE_LEN * (1 - clampedRatio);
+            const wandOffset = WAND_LEN * (1 - clampedRatio);
+
+            hallowTriangle.style.strokeDashoffset = triOffset;
+            hallowCircle.style.strokeDashoffset = circleOffset;
+            hallowWand.style.strokeDashoffset = wandOffset;
+
+            // 同步中層光束過渡層
+            if (hallowTriangleMid) hallowTriangleMid.style.strokeDashoffset = triOffset;
+            if (hallowCircleMid) hallowCircleMid.style.strokeDashoffset = circleOffset;
+            if (hallowWandMid) hallowWandMid.style.strokeDashoffset = wandOffset;
+
+            // 同步外層瀰漫靈光層
+            if (hallowTriangleAura) hallowTriangleAura.style.strokeDashoffset = triOffset;
+            if (hallowCircleAura) hallowCircleAura.style.strokeDashoffset = circleOffset;
+            if (hallowWandAura) hallowWandAura.style.strokeDashoffset = wandOffset;
+
+            // 燃燒狀態顏色調配：專注時燃燒為高溫熾金與赤火紅；休息回復時為晶瑩冷藍
+            let coreColor = '#ffffff';
+            let midColor = '#fedb91';
+            let auraColor = '#f0c265';
+
+            if (isFocusMode) {
+                if (isRunning) {
+                    // 燃燒消融中：高溫熾橙與赤焰漸層
+                    midColor = clampedRatio < 0.25 ? '#ff4b1f' : '#ff9436';
+                    auraColor = clampedRatio < 0.25 ? '#d62828' : '#e65c00';
+                } else {
+                    midColor = clampedRatio < 0.2 ? '#ff9999' : '#fedb91';
+                    auraColor = clampedRatio < 0.2 ? '#ff5252' : '#f0c265';
+                }
+            } else {
+                midColor = '#94e8ff';
+                auraColor = '#48cae4';
+            }
+
+            hallowTriangle.setAttribute('stroke', coreColor);
+            hallowCircle.setAttribute('stroke', coreColor);
+            hallowWand.setAttribute('stroke', coreColor);
+
+            if (hallowTriangleMid) {
+                hallowTriangleMid.setAttribute('stroke', midColor);
+                hallowCircleMid.setAttribute('stroke', midColor);
+                hallowWandMid.setAttribute('stroke', midColor);
+            }
+
+            if (hallowTriangleAura) {
+                hallowTriangleAura.setAttribute('stroke', auraColor);
+                hallowCircleAura.setAttribute('stroke', auraColor);
+                hallowWandAura.setAttribute('stroke', auraColor);
+            }
+
+            // 更新燃燒前緣熾熱熔融端點位置
+            updateBurningTips(clampedRatio);
+
+            requestAnimationFrame(smoothRenderHallowsLoop);
+        }
+
+        // 計算死神聖物三部位在特定進度 ratio 下的燃燒邊緣端點坐標 (SVG viewBox 空間)
+        function getHallowsEdgeCoordinates(ratio) {
+            // 1. 三角形斗篷周長 510：(100,20) -> (185,170) -> (15,170) -> (100,20)
+            const triDist = ratio * TRIANGLE_LEN;
+            let triX = 100, triY = 20;
+            const l1 = Math.hypot(185 - 100, 170 - 20); // ~172.4
+            const l2 = 185 - 15;                         // 170
+            const l3 = Math.hypot(100 - 15, 20 - 170);   // ~172.4
+
+            if (triDist <= l1) {
+                const t = triDist / l1;
+                triX = 100 + (185 - 100) * t;
+                triY = 20 + (170 - 20) * t;
+            } else if (triDist <= l1 + l2) {
+                const t = (triDist - l1) / l2;
+                triX = 185 - (185 - 15) * t;
+                triY = 170;
+            } else {
+                const t = Math.min(1, (triDist - l1 - l2) / l3);
+                triX = 15 + (100 - 15) * t;
+                triY = 170 + (20 - 170) * t;
+            }
+
+            // 2. 圓形重生石 (cx=100, cy=118, r=48)
+            const angle = ratio * Math.PI * 2;
+            const circX = 100 + 48 * Math.cos(angle);
+            const circY = 118 + 48 * Math.sin(angle);
+
+            // 3. 接骨木魔杖 (100,20) -> (100,170)
+            const wandX = 100;
+            const wandY = 20 + (170 - 20) * ratio;
+
+            return {
+                tri: { x: triX, y: triY },
+                circle: { x: circX, y: circY },
+                wand: { x: wandX, y: wandY }
+            };
+        }
+
+        // 更新燃燒光斑端點
+        function updateBurningTips(ratio) {
+            if (!burnTipTriangle || !burnTipCircle || !burnTipWand) return;
+
+            // 只有在運作中且非剛好滿載或歸零時，顯示燃燒熾白端點
+            const showTips = isRunning && ratio > 0.01 && ratio < 0.99;
+            const tipOpacity = showTips ? (isFocusMode ? '0.95' : '0.85') : '0';
+
+            const pts = getHallowsEdgeCoordinates(ratio);
+
+            burnTipTriangle.setAttribute('cx', pts.tri.x);
+            burnTipTriangle.setAttribute('cy', pts.tri.y);
+            burnTipTriangle.setAttribute('opacity', tipOpacity);
+
+            burnTipCircle.setAttribute('cx', pts.circle.x);
+            burnTipCircle.setAttribute('cy', pts.circle.y);
+            burnTipCircle.setAttribute('opacity', tipOpacity);
+
+            burnTipWand.setAttribute('cx', pts.wand.x);
+            burnTipWand.setAttribute('cy', pts.wand.y);
+            burnTipWand.setAttribute('opacity', tipOpacity);
+
+            const tipFill = isFocusMode ? '#fff8e1' : '#e0f7ff';
+            burnTipTriangle.setAttribute('fill', tipFill);
+            burnTipCircle.setAttribute('fill', tipFill);
+            burnTipWand.setAttribute('fill', tipFill);
+        }
+
+        function switchMode(toFocus) {
+            isFocusMode = toFocus;
+            pauseTimer();
+
+            if (isFocusMode) {
+                resetBreakMusic();
+                totalSeconds = focusMinutes * 60;
+                remainingSeconds = totalSeconds;
+                sessionStatusText.textContent = "魔咒研讀中";
+                hintText.textContent = "畢業在即，你正為了即將來臨的N.E.W.T.s做準備……";
+                modeFocusBtn.classList.add('btn-mode-active');
+                modeBreakBtn.classList.remove('btn-mode-active');
+                
+                // 留聲機平滑淡出，不改變容器排版尺寸
+                breakStorySection.classList.remove('opacity-100', 'pointer-events-auto');
+                breakStorySection.classList.add('opacity-0', 'pointer-events-none');
+            } else {
+                resetBreakMusic();
+                totalSeconds = breakMinutes * 60;
+                remainingSeconds = totalSeconds;
+                sessionStatusText.textContent = "小憩漫步";
+                hintText.textContent = "是時候來杯奶油啤酒了，不如再來點糖蜜餡餅？";
+                modeBreakBtn.classList.add('btn-mode-active');
+                modeFocusBtn.classList.remove('btn-mode-active');
+
+                // 留聲機平滑淡入
+                breakStorySection.classList.remove('opacity-0', 'pointer-events-none');
+                breakStorySection.classList.add('opacity-100', 'pointer-events-auto');
+            }
+
+            updateDisplay();
+        }
+
+        function startTimer() {
+            initAudio();
+
+            if (remainingSeconds <= 0) {
+                remainingSeconds = totalSeconds;
+            }
+
+            isRunning = true;
+            startBtnText.textContent = "沉思暫停";
+            if (playIconWrap) playIconWrap.innerHTML = ICONS.pause;
+
+            // 環境音量恢復 (專注模式：調為 0.42，使夏日細雨更加柔和溫潤、舒適包覆)
+            if (ambientMasterGain && ambientSoundEnabled && isFocusMode) {
+                ambientMasterGain.gain.setTargetAtTime(0.42, audioCtx.currentTime, 0.6);
+                // 重啟對話排程並觸發較快的初次低語
+                startStudentWhisperLoop(true);
+            }
+
+            // 休息模式下：開始計時即自動開始/接續播放留聲機音樂
+            if (!isFocusMode) {
+                playBreakMusic();
+            }
+
+            timerInterval = setInterval(() => {
+                if (remainingSeconds > 0) {
+                    remainingSeconds--;
+
+                    // 休息時間結束前 4 秒：平滑觸發音樂 4 秒漸弱淡出
+                    if (!isFocusMode && remainingSeconds === 4 && isMusicPlaying) {
+                        fadeOutBreakMusic(4000);
+                    }
+
+                    updateDisplay();
+                } else {
+                    handleTimerComplete();
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            isRunning = false;
+            clearInterval(timerInterval);
+            timerInterval = null;
+            startBtnText.textContent = "誦咒開始";
+            if (playIconWrap) playIconWrap.innerHTML = ICONS.play;
+
+            // 淡出背景環境聲
+            if (ambientMasterGain && audioCtx) {
+                ambientMasterGain.gain.setTargetAtTime(0.001, audioCtx.currentTime, 0.4);
+            }
+
+            // 番茄鐘按下暫停時，耳語與留聲機音樂同步暫停
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            if (!isFocusMode) {
+                stopBreakMusic();
+            }
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            remainingSeconds = totalSeconds;
+            if (!isFocusMode) {
+                resetBreakMusic();
+            }
+            updateDisplay();
+            showToast("儀式已重置", "時光符咒重新歸位，指針回到了起點。");
+        }
+
+        function handleTimerComplete() {
+            // 時間到：清除當前定時器，平滑無縫切入下一輪
+            clearInterval(timerInterval);
+            timerInterval = null;
+
+            if (isFocusMode) {
+                // 專注結束 ➜ 無間斷直接切換至休息模式並開始播放音樂
+                switchMode(false);
+                startTimer();
+            } else {
+                // 休息結束 ➜ 將留下的微弱餘音重設並關閉，直接無縫進入專注修煉
+                resetBreakMusic();
+                switchMode(true);
+                startTimer();
+            }
+        }
+
+        // 簡短魔法提示 Toast
+        let toastTimeout = null;
+        function showToast(title, message) {
+            const toast = document.getElementById('magicToast');
+            const toastTitle = document.getElementById('toastTitle');
+            const toastMessage = document.getElementById('toastMessage');
+
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+
+            toast.style.opacity = '1';
+            toast.style.pointerEvents = 'auto';
+
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.pointerEvents = 'none';
+            }, 4500);
+        }
+
+        /* =========================================================================
+           7. 互動事件綁定
+           ========================================================================= */
+        startPauseBtn.addEventListener('click', () => {
+            if (isRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        });
+
+        resetBtn.addEventListener('click', resetTimer);
+
+        modeFocusBtn.addEventListener('click', () => {
+            if (!isFocusMode) switchMode(true);
+        });
+
+        modeBreakBtn.addEventListener('click', () => {
+            if (isFocusMode) switchMode(false);
+        });
+
+        // 專注時間設定（支援直接輸入與按鈕微調）
+        function applyFocusMinutes(val) {
+            let num = parseInt(val, 10);
+            if (isNaN(num) || num < 1) num = 1;
+            if (num > 180) num = 180;
+            focusMinutes = num;
+            focusInput.value = focusMinutes;
+            if (isFocusMode && !isRunning) {
+                totalSeconds = focusMinutes * 60;
+                remainingSeconds = totalSeconds;
+                updateDisplay();
+            }
+        }
+
+        focusInput.addEventListener('change', (e) => applyFocusMinutes(e.target.value));
+        focusInput.addEventListener('input', (e) => {
+            if (e.target.value !== '') applyFocusMinutes(e.target.value);
+        });
+
+        // 點擊或聚焦時自動全選數值，方便直接鍵入新時間
+        focusInput.addEventListener('focus', function() {
+            this.select();
+        });
+        focusInput.addEventListener('mouseup', function(e) {
+            e.preventDefault();
+        });
+
+        focusDec.addEventListener('click', () => {
+            applyFocusMinutes(focusMinutes - 1);
+        });
+
+        focusInc.addEventListener('click', () => {
+            applyFocusMinutes(focusMinutes + 1);
+        });
+
+        // 休息時間設定（支援直接輸入與按鈕微調）
+        function applyBreakMinutes(val) {
+            let num = parseInt(val, 10);
+            if (isNaN(num) || num < 1) num = 1;
+            if (num > 60) num = 60;
+            breakMinutes = num;
+            breakInput.value = breakMinutes;
+            if (!isFocusMode && !isRunning) {
+                totalSeconds = breakMinutes * 60;
+                remainingSeconds = totalSeconds;
+                updateDisplay();
+            }
+        }
+
+        breakInput.addEventListener('change', (e) => applyBreakMinutes(e.target.value));
+        breakInput.addEventListener('input', (e) => {
+            if (e.target.value !== '') applyBreakMinutes(e.target.value);
+        });
+
+        // 點擊或聚焦時自動全選數值，方便直接鍵入新時間
+        breakInput.addEventListener('focus', function() {
+            this.select();
+        });
+        breakInput.addEventListener('mouseup', function(e) {
+            e.preventDefault();
+        });
+
+        breakDec.addEventListener('click', () => {
+            applyBreakMinutes(breakMinutes - 1);
+        });
+
+        breakInc.addEventListener('click', () => {
+            applyBreakMinutes(breakMinutes + 1);
+        });
+
+        // 休息時間配樂手動控制
+        replayVoiceBtn.addEventListener('click', () => {
+            if (isMusicPlaying) {
+                stopBreakMusic();
+            } else {
+                playBreakMusic();
+            }
+        });
+
+        // 監聽手動選擇本地音訊檔案 (徹底避開瀏覽器相對路徑限制)
+        if (audioFileInput) {
+            audioFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const objectUrl = URL.createObjectURL(file);
+                    breakAudioPlayer.src = objectUrl;
+                    breakAudioPlayer.load();
+                    if (audioSourceLabel) {
+                        audioSourceLabel.textContent = file.name;
+                    }
+                    showToast("音檔已載入", `已成功載入「${file.name}」，休息時將自動為您播放！`);
+                    // 若當前已在休息模式且正在倒數，直接啟動播放
+                    if (!isFocusMode && isRunning) {
+                        playBreakMusic();
+                    }
+                }
+            });
+        }
+
+        // 切換環境音效開關
+        toggleSoundBtn.addEventListener('click', () => {
+            initAudio();
+            ambientSoundEnabled = !ambientSoundEnabled;
+            if (ambientSoundEnabled) {
+                soundIconWrap.innerHTML = ICONS.soundOn;
+                soundStatusText.textContent = "古堡雨聲環境音：開";
+                if (ambientMasterGain && isRunning) {
+                    ambientMasterGain.gain.setValueAtTime(0.42, audioCtx.currentTime);
+                }
+            } else {
+                soundIconWrap.innerHTML = ICONS.soundMute;
+                soundStatusText.textContent = "古堡雨聲環境音：靜音";
+                if (ambientMasterGain && audioCtx) {
+                    ambientMasterGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+                }
+            }
+        });
+
+        /* =========================================================================
+           8. 背景漂浮金色魔法粒子 Canvas 動畫
+           ========================================================================= */
+        const canvas = document.getElementById('particlesCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // 精準動態對齊：使時間容器左邊界對齊「專注修煉」左緣（閃電符號），右邊界對齊「霍格華茲小憩」右緣（右括號）
+        function alignTimerToButtons() {
+            const focusBtn = document.getElementById('modeFocusBtn');
+            const breakBtn = document.getElementById('modeBreakBtn');
+            const timerContainer = document.getElementById('timerAlignContainer');
+            if (!focusBtn || !breakBtn || !timerContainer) return;
+
+            const focusRect = focusBtn.getBoundingClientRect();
+            const breakRect = breakBtn.getBoundingClientRect();
+
+            // 取得「專注修煉」左側內距邊界（閃電圖標位置）與「霍格華茲小憩」右側邊界（右括號位置）
+            const focusStyle = window.getComputedStyle(focusBtn);
+            const breakStyle = window.getComputedStyle(breakBtn);
+            const focusPaddingLeft = parseFloat(focusStyle.paddingLeft) || 0;
+            const breakPaddingRight = parseFloat(breakStyle.paddingRight) || 0;
+
+            const leftTarget = focusRect.left + focusPaddingLeft;
+            const rightTarget = breakRect.right - breakPaddingRight;
+            const targetWidth = Math.max(280, rightTarget - leftTarget);
+
+            timerContainer.style.width = `${targetWidth}px`;
+        }
+
+        window.addEventListener('resize', alignTimerToButtons);
+
+        class MagicParticle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.radius = Math.random() * 2 + 0.5;
+                this.speedY = -(Math.random() * 0.4 + 0.15);
+                this.speedX = (Math.random() - 0.5) * 0.3;
+                this.alpha = Math.random() * 0.6 + 0.2;
+                this.fadeSpeed = Math.random() * 0.005 + 0.002;
+                this.color = Math.random() > 0.3 ? '245, 200, 110' : '255, 240, 190';
+            }
+
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX;
+                this.alpha -= this.fadeSpeed;
+
+                if (this.alpha <= 0 || this.y < -10) {
+                    this.reset();
+                    this.y = canvas.height + 10;
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${this.color}, ${this.alpha})`;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = `rgba(${this.color}, 0.8)`;
+                ctx.fill();
+            }
+        }
+
+        // 依螢幕大小生成粒子
+        const particleCount = window.innerWidth < 640 ? 35 : 65;
+        for (let i = 0; i < particleCount; i++) {
+            particles.push(new MagicParticle());
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+
+        /* =========================================================================
+           9. 死神的聖物：魔力靈光與燃燒飛濺餘燼粒子 (Incineration Embers & Sparks)
+           ========================================================================= */
+        const hallowsCanvas = document.getElementById('hallowsParticlesCanvas');
+        const hctx = hallowsCanvas.getContext('2d');
+        let hallowsDust = [];
+
+        function resizeHallowsCanvas() {
+            const rect = hallowsCanvas.getBoundingClientRect();
+            hallowsCanvas.width = rect.width * (window.devicePixelRatio || 1);
+            hallowsCanvas.height = rect.height * (window.devicePixelRatio || 1);
+        }
+        window.addEventListener('resize', resizeHallowsCanvas);
+
+        // 沿死神的聖物幾何軌跡取樣 (隱形斗篷三角形、重生石圓形、魔杖直線)
+        function getRandomHallowsGeometryPoint() {
+            // 比例尺基準：因應擴展的 SVG viewBox (-25, -15, 250, 220) 精準校準
+            const type = Math.random();
+            const w = hallowsCanvas.width;
+            const h = hallowsCanvas.height;
+            const scaleX = w / 250;
+            const scaleY = h / 220;
+
+            let px = 100, py = 100;
+
+            if (type < 0.45) {
+                // 三角形斗篷 (100,20) -> (185,170) -> (15,170) -> (100,20)
+                const edge = Math.floor(Math.random() * 3);
+                const t = Math.random();
+                if (edge === 0) {
+                    px = 100 + (185 - 100) * t;
+                    py = 20 + (170 - 20) * t;
+                } else if (edge === 1) {
+                    px = 185 + (15 - 185) * t;
+                    py = 170;
+                } else {
+                    px = 15 + (100 - 15) * t;
+                    py = 170 + (20 - 170) * t;
+                }
+            } else if (type < 0.75) {
+                // 重生石圓形 (cx=100, cy=118, r=48)
+                const angle = Math.random() * Math.PI * 2;
+                px = 100 + 48 * Math.cos(angle);
+                py = 118 + 48 * Math.sin(angle);
+            } else {
+                // 接骨木魔杖 (100,20) -> (100,170)
+                const t = Math.random();
+                px = 100;
+                py = 20 + (170 - 20) * t;
+            }
+
+            // 經由 viewBox 偏移 (-25, -15) 映射回 canvas 正確坐標
+            return {
+                x: (px + 25) * scaleX,
+                y: (py + 15) * scaleY
+            };
+        }
+
+        // 取得當前燃燒消退前沿的端點坐標 (Canvas 坐標系)
+        function getBurnFrontEdgeCanvasPoint() {
+            const w = hallowsCanvas.width;
+            const h = hallowsCanvas.height;
+            const scaleX = w / 250;
+            const scaleY = h / 220;
+
+            const pts = getHallowsEdgeCoordinates(currentRenderRatio);
+            // 隨機從三條線的消融前沿中選取一個點
+            const pick = Math.random();
+            const chosen = pick < 0.45 ? pts.tri : (pick < 0.75 ? pts.circle : pts.wand);
+
+            return {
+                x: (chosen.x + 25) * scaleX,
+                y: (chosen.y + 15) * scaleY
+            };
+        }
+
+        class HallowSparkle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                // 若正在倒數專注，有 55% 的粒子直接誕生於「燃燒前緣」化作飛散火星
+                const isBurnEmber = isRunning && isFocusMode && Math.random() < 0.55;
+                this.isEmber = isBurnEmber;
+
+                if (isBurnEmber) {
+                    // 燃燒餘燼火星：從正在消融的切點誕生
+                    const burnPt = getBurnFrontEdgeCanvasPoint();
+                    this.x = burnPt.x + (Math.random() - 0.5) * 4;
+                    this.y = burnPt.y + (Math.random() - 0.5) * 4;
+                    // 熱氣流向上升騰與爆裂微彈跳
+                    this.vx = (Math.random() - 0.5) * 1.6;
+                    this.vy = -(Math.random() * 1.8 + 0.6);
+                    this.size = Math.random() * 2.2 + 0.8;
+                    this.alpha = Math.random() * 0.6 + 0.4;
+                    this.decay = Math.random() * 0.025 + 0.015; // 迅速燃燒冷卻化為灰燼
+                    this.color = Math.random() > 0.4 ? '255, 95, 30' : (Math.random() > 0.5 ? '255, 170, 40' : '255, 230, 100');
+                } else {
+                    // 一般魔法聚光光斑
+                    const pt = getRandomHallowsGeometryPoint();
+                    this.x = pt.x + (Math.random() - 0.5) * 3;
+                    this.y = pt.y + (Math.random() - 0.5) * 3;
+                    this.vx = (Math.random() - 0.5) * 0.25;
+                    this.vy = (Math.random() - 0.5) * 0.25 - 0.1;
+                    this.size = Math.random() * 3.2 + 1.2;
+                    this.alpha = Math.random() * 0.45 + 0.15;
+                    this.decay = Math.random() * 0.012 + 0.006;
+                    this.color = isFocusMode ? 
+                        (Math.random() > 0.3 ? '255, 215, 130' : '255, 245, 200') :
+                        (Math.random() > 0.3 ? '150, 235, 255' : '240, 252, 255');
+                }
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // 燃燒火星受熱氣浮力與微幅飄移
+                if (this.isEmber) {
+                    this.vy -= 0.02; // 熱浮力向上
+                    this.vx += (Math.random() - 0.5) * 0.15; // 飄忽不定
+                }
+
+                this.alpha -= this.decay;
+                if (this.alpha <= 0) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                hctx.save();
+                hctx.globalCompositeOperation = 'screen';
+
+                if (this.isEmber) {
+                    // 燃燒火星：中心熾亮、外圈焦橙星火
+                    hctx.beginPath();
+                    hctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    hctx.fillStyle = `rgba(${this.color}, ${this.alpha})`;
+                    hctx.shadowBlur = 6;
+                    hctx.shadowColor = `rgba(${this.color}, 0.9)`;
+                    hctx.fill();
+                } else {
+                    // 柔焦光斑
+                    const grad = hctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 2);
+                    grad.addColorStop(0, `rgba(${this.color}, ${this.alpha})`);
+                    grad.addColorStop(0.5, `rgba(${this.color}, ${this.alpha * 0.45})`);
+                    grad.addColorStop(1, `rgba(${this.color}, 0)`);
+
+                    hctx.beginPath();
+                    hctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+                    hctx.fillStyle = grad;
+                    hctx.fill();
+                }
+
+                hctx.restore();
+            }
+        }
+
+        // 初始化聖物星塵與燃燒粒子群 (增至 85 顆以豐富燃燒餘燼感)
+        const HALLOW_DUST_COUNT = 85;
+        for (let i = 0; i < HALLOW_DUST_COUNT; i++) {
+            hallowsDust.push(new HallowSparkle());
+        }
+
+        function animateHallowsDust() {
+            hctx.clearRect(0, 0, hallowsCanvas.width, hallowsCanvas.height);
+            hallowsDust.forEach(sp => {
+                sp.update();
+                sp.draw();
+            });
+            requestAnimationFrame(animateHallowsDust);
+        }
+
+        // 初始化執行
+        window.onload = function() {
+            resizeHallowsCanvas();
+            alignTimerToButtons();
+            animateParticles();
+            animateHallowsDust();
+            lastFrameTime = performance.now();
+            requestAnimationFrame(smoothRenderHallowsLoop);
+            updateDisplay();
+        };
+    </script>
+</body>
+</html>
